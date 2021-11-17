@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -65,6 +66,7 @@ func preparePurgingUrl(cachePrefix string, url *url.URL) string {
 	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, wpPath, wpSignedEncoded)
 }
 
+// based on https://developers.google.com/amp/cache/update-cache#rsa-keys
 func encodeSignatureForUrl(signature []byte) string {
 	encoded := base64.StdEncoding.EncodeToString(signature)
 	encoded = strings.ReplaceAll(encoded, "/", "_")
@@ -78,7 +80,15 @@ func sign(msg string) []byte {
 	msgBytes := []byte(msg)
 
 	msgHashSum := sha256.Sum256(msgBytes)
-	privateKey, _ := loadPrivateKey("private-key.pem", "", "public-key.pem")
+	privateKeyLocation := os.Getenv("PRIVATE_KEY_LOCATION")
+	if len(privateKeyLocation) == 0 {
+		privateKeyLocation = "private-key.pem"
+	}
+	privateKeyPassword := os.Getenv("PRIVATE_KEY_PASSWORD")
+	if len(privateKeyPassword) == 0 {
+		privateKeyPassword = ""
+	}
+	privateKey, _ := loadPrivateKey(privateKeyLocation, privateKeyPassword)
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum[:])
 	if err != nil {
 		panic(err)
@@ -86,16 +96,16 @@ func sign(msg string) []byte {
 	return signature
 }
 
-func loadPrivateKey(rsaPrivateKeyLocation, rsaPrivateKeyPassword, rsaPublicKeyLocation string) (*rsa.PrivateKey, error) {
+func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.PrivateKey, error) {
 	// validate locations
 
-	privateKeyFile, _ := ioutil.ReadFile(rsaPrivateKeyLocation)
+	privateKeyFile, _ := ioutil.ReadFile(privateKeyLocation)
 
 	privatePem, _ := pem.Decode(privateKeyFile)
 	var privatePemBytes []byte
 
 	if rsaPrivateKeyPassword != "" {
-		privatePemBytes, _ = x509.DecryptPEMBlock(privatePem, []byte(rsaPrivateKeyPassword))
+		privatePemBytes, _ = x509.DecryptPEMBlock(privatePem, []byte(privateKeyPassword))
 	} else {
 		privatePemBytes = privatePem.Bytes
 	}
