@@ -24,18 +24,8 @@ func purgeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	ampCDN := fmt.Sprintf("https://%s.cdn.ampproject.org", strings.ReplaceAll(url.Host, ".", "-"))
-	now := time.Now()
-	sec := now.Unix()
-	wpPath := fmt.Sprintf("/update-cache/wp/s/%s%s?amp_action=flush&amp_ts=%d", url.Host, url.RequestURI(), sec)
-	wpSigned := sign(wpPath)
-	wpSignedEncoded := encodeSignatureForUrl(wpSigned)
-	wpFullUrl := fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, wpPath, wpSignedEncoded)
-
-	cPath := fmt.Sprintf("/update-cache/c/s/%s%s?amp_action=flush&amp_ts=%d", url.Host, url.RequestURI(), sec)
-	сSigned := sign(cPath)
-	сSignedEncoded := encodeSignatureForUrl(сSigned)
-	cFullUrl := fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, cPath, сSignedEncoded)
+	wpFullUrl := preparePurgingUrl("wp", url)
+	cFullUrl := preparePurgingUrl("c", url)
 
 	// clear both wp/s and c/s
 	err = makePurgeRequest(w, cFullUrl)
@@ -62,6 +52,17 @@ func makePurgeRequest(w http.ResponseWriter, url string) error {
 		return fmt.Errorf("failed to purge %s", url)
 	}
 	return nil
+}
+
+func preparePurgingUrl(cachePrefix string, url *url.URL) string {
+	ampCDN := fmt.Sprintf("https://%s.cdn.ampproject.org", strings.ReplaceAll(url.Host, ".", "-"))
+	now := time.Now()
+	sec := now.Unix()
+	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), sec)
+	signed := sign(path)
+	signedEncoded := encodeSignatureForUrl(signed)
+
+	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, wpPath, wpSignedEncoded)
 }
 
 func encodeSignatureForUrl(signature []byte) string {
