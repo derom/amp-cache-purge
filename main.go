@@ -55,7 +55,7 @@ func sign(msg string) []byte {
 	msgBytes := []byte(msg)
 
 	msgHashSum := sha256.Sum256(msgBytes)
-	privateKey, _ := rsaConfigSetup("private-key.pem", "", "public-key.pem")
+	privateKey, _ := loadPrivateKey("private-key.pem", "", "public-key.pem")
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum[:])
 	if err != nil {
 		panic(err)
@@ -63,48 +63,30 @@ func sign(msg string) []byte {
 	return signature
 }
 
-func rsaConfigSetup(rsaPrivateKeyLocation, rsaPrivateKeyPassword, rsaPublicKeyLocation string) (*rsa.PrivateKey, error) {
+func loadPrivateKey(rsaPrivateKeyLocation, rsaPrivateKeyPassword, rsaPublicKeyLocation string) (*rsa.PrivateKey, error) {
 	// validate locations
 
-	priv, _ := ioutil.ReadFile(rsaPrivateKeyLocation)
+	privateKeyFile, _ := ioutil.ReadFile(rsaPrivateKeyLocation)
 
-	privPem, _ := pem.Decode(priv)
-	var privPemBytes []byte
+	privatePem, _ := pem.Decode(privateKeyFile)
+	var privatePemBytes []byte
 
 	if rsaPrivateKeyPassword != "" {
-		privPemBytes, _ = x509.DecryptPEMBlock(privPem, []byte(rsaPrivateKeyPassword))
+		privatePemBytes, _ = x509.DecryptPEMBlock(privatePem, []byte(rsaPrivateKeyPassword))
 	} else {
-		privPemBytes = privPem.Bytes
+		privatePemBytes = privatePem.Bytes
 	}
 
 	var parsedKey interface{}
-	var err error
-	if parsedKey, err = x509.ParsePKCS1PrivateKey(privPemBytes); err != nil {
-		if parsedKey, err = x509.ParsePKCS8PrivateKey(privPemBytes); err != nil { // note this returns type `interface{}`
-			//utils.LogError("Unable to parse RSA private key, generating a temp one", err, utils.LogFields{})
-			//return GenRSA(4096)
-		}
-	}
+	parsedKey, _ = x509.ParsePKCS1PrivateKey(privatePemBytes)
 
 	var privateKey *rsa.PrivateKey
 	privateKey, _ = parsedKey.(*rsa.PrivateKey)
-
-	pub, _ := ioutil.ReadFile(rsaPublicKeyLocation)
-
-	pubPem, _ := pem.Decode(pub)
-
-	parsedKey, _ = x509.ParsePKIXPublicKey(pubPem.Bytes)
-
-	var pubKey *rsa.PublicKey
-	pubKey, _ = parsedKey.(*rsa.PublicKey)
-
-	privateKey.PublicKey = *pubKey
 
 	return privateKey, nil
 }
 
 func main() {
-
 	http.HandleFunc("/purge", purge)
 
 	http.ListenAndServe(":8090", nil)
