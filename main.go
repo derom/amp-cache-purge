@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func purge(w http.ResponseWriter, req *http.Request) {
+func purgeHandler(w http.ResponseWriter, req *http.Request) {
 	url, err := url.Parse(req.FormValue("url"))
 
 	if err != nil {
@@ -30,16 +30,29 @@ func purge(w http.ResponseWriter, req *http.Request) {
 	wpPath := fmt.Sprintf("/update-cache/wp/s/%s%s?amp_action=flush&amp_ts=%d", url.Host, url.RequestURI(), sec)
 	wpSigned := sign(wpPath)
 	wpSignedEncoded := encodeSignatureForUrl(wpSigned)
-	wpFull := fmt.Sprintf("%s&amp_url_signature=%s", wpPath, wpSignedEncoded)
+	wpFullUrl := fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, wpPath, wpSignedEncoded)
 
 	cPath := fmt.Sprintf("/update-cache/c/s/%s%s?amp_action=flush&amp_ts=%d", url.Host, url.RequestURI(), sec)
 	сSigned := sign(cPath)
 	сSignedEncoded := encodeSignatureForUrl(сSigned)
-	cFull := fmt.Sprintf("%s&amp_url_signature=%s", cPath, сSignedEncoded)
+	cFullUrl := fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, cPath, сSignedEncoded)
 
 	// clear both wp/s and c/s
-	fmt.Fprintf(w, "%s%s\n", ampCDN, wpFull)
-	fmt.Fprintf(w, "%s%s\n", ampCDN, cFull)
+	fmt.Printf("Purging %s", cFullUrl)
+	resp, err := http.Get(cFullUrl)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to purge"))
+		return
+	}
+
+	fmt.Printf("Purging %s", wpFullUrl)
+	resp, err = http.Get(wpFullUrl)
+	if err != nil || resp.Body {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("failed to purge"))
+		return
+	}
 }
 
 func encodeSignatureForUrl(signature []byte) string {
@@ -87,7 +100,7 @@ func loadPrivateKey(rsaPrivateKeyLocation, rsaPrivateKeyPassword, rsaPublicKeyLo
 }
 
 func main() {
-	http.HandleFunc("/purge", purge)
+	http.HandleFunc("/purge", purgeHandler)
 
 	http.ListenAndServe(":8090", nil)
 }
