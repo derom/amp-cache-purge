@@ -20,8 +20,8 @@ func purgeHandler(w http.ResponseWriter, req *http.Request) {
 	url, err := url.Parse(req.FormValue("url"))
 
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("failed to parse url"))
+		http.Error(w, "failed to parse url", http.StatusBadRequest)
+		return
 	}
 
 	ampCDN := fmt.Sprintf("https://%s.cdn.ampproject.org", strings.ReplaceAll(url.Host, ".", "-"))
@@ -38,21 +38,30 @@ func purgeHandler(w http.ResponseWriter, req *http.Request) {
 	cFullUrl := fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, cPath, сSignedEncoded)
 
 	// clear both wp/s and c/s
-	fmt.Printf("Purging %s", cFullUrl)
-	resp, err := http.Get(cFullUrl)
+	err = makePurgeRequest(w, cFullUrl)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("failed to purge"))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	err = makePurgeRequest(w, wpFullUrl)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte("success"))
+}
 
-	fmt.Printf("Purging %s", wpFullUrl)
-	resp, err = http.Get(wpFullUrl)
-	if err != nil || resp.Body {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("failed to purge"))
-		return
+func makePurgeRequest(w http.ResponseWriter, url string) error {
+	fmt.Printf("Purging %s", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to purge %s", url)
 	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil || string(body) != "OK" {
+		return fmt.Errorf("failed to purge %s", url)
+	}
+	return nil
 }
 
 func encodeSignatureForUrl(signature []byte) string {
