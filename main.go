@@ -63,7 +63,7 @@ func preparePurgingUrl(cachePrefix string, url *url.URL) string {
 	signed := sign(path)
 	signedEncoded := encodeSignatureForUrl(signed)
 
-	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, wpPath, wpSignedEncoded)
+	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedEncoded)
 }
 
 // based on https://developers.google.com/amp/cache/update-cache#rsa-keys
@@ -104,7 +104,7 @@ func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.Private
 	privatePem, _ := pem.Decode(privateKeyFile)
 	var privatePemBytes []byte
 
-	if rsaPrivateKeyPassword != "" {
+	if privateKeyPassword != "" {
 		privatePemBytes, _ = x509.DecryptPEMBlock(privatePem, []byte(privateKeyPassword))
 	} else {
 		privatePemBytes = privatePem.Bytes
