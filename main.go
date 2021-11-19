@@ -25,8 +25,11 @@ func purgeHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	wpFullUrl := preparePurgingUrl("wp", url)
-	cFullUrl := preparePurgingUrl("c", url)
+	// make requests to cache to check it exists
+
+	ampCDN := makeAmpCDNUrl(url.Host)
+	wpFullUrl := preparePurgingUrl(ampCDN, "wp", url)
+	cFullUrl := preparePurgingUrl(ampCDN, "c", url)
 
 	// clear both wp/s and c/s
 	err = makePurgeRequest(w, cFullUrl)
@@ -55,8 +58,7 @@ func makePurgeRequest(w http.ResponseWriter, url string) error {
 	return nil
 }
 
-func preparePurgingUrl(cachePrefix string, url *url.URL) string {
-	ampCDN := fmt.Sprintf("https://%s.cdn.ampproject.org", strings.ReplaceAll(url.Host, ".", "-"))
+func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL) string {
 	now := time.Now()
 	sec := now.Unix()
 	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), sec)
@@ -64,6 +66,10 @@ func preparePurgingUrl(cachePrefix string, url *url.URL) string {
 	signedEncoded := encodeSignatureForUrl(signed)
 
 	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedEncoded)
+}
+
+func makeAmpCDNUrl(host string) string {
+	return fmt.Sprintf("https://%s.cdn.ampproject.org", strings.ReplaceAll(host, ".", "-"))
 }
 
 // based on https://developers.google.com/amp/cache/update-cache#rsa-keys
