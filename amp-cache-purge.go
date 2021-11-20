@@ -1,4 +1,4 @@
-package main
+package ampcachepurge
 
 import (
 	"crypto"
@@ -17,36 +17,33 @@ import (
 	"time"
 )
 
-func purgeHandler(w http.ResponseWriter, req *http.Request) {
-	url, err := url.Parse(req.FormValue("url"))
-
-	if err != nil {
-		http.Error(w, "failed to parse url", http.StatusBadRequest)
-		return
+func PurgeUrl(rawURL string) error {
+	parsedUrl, parseErr := url.Parse(rawURL)
+	if parseErr != nil {
+		return fmt.Errorf("failed to parse url: %s", rawURL)
 	}
 
 	// make requests to cache to check it exists
 
-	ampCDN := makeAmpCDNUrl(url.Host)
-	wpFullUrl := preparePurgingUrl(ampCDN, "wp", url)
-	cFullUrl := preparePurgingUrl(ampCDN, "c", url)
+	ampCDN := makeAmpCDNUrl(parsedUrl.Host)
+	wpFullUrl := preparePurgingUrl(ampCDN, "wp", parsedUrl)
+	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl)
 
+	var err error
 	// clear both wp/s and c/s
-	err = makePurgeRequest(w, cFullUrl)
+	err = makePurgeRequest(cFullUrl)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
-	err = makePurgeRequest(w, wpFullUrl)
+	err = makePurgeRequest(wpFullUrl)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
-	w.Write([]byte("success"))
+	return nil
 }
 
-func makePurgeRequest(w http.ResponseWriter, url string) error {
-	fmt.Printf("Purging %s", url)
+func makePurgeRequest(url string) error {
+	fmt.Printf("Purging %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("failed to purge %s", url)
@@ -123,10 +120,4 @@ func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.Private
 	privateKey, _ = parsedKey.(*rsa.PrivateKey)
 
 	return privateKey, nil
-}
-
-func main() {
-	http.HandleFunc("/purge", purgeHandler)
-
-	http.ListenAndServe(":8090", nil)
 }
