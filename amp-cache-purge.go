@@ -26,8 +26,10 @@ func PurgeUrl(rawURL string) error {
 	// make requests to cache to check it exists
 
 	ampCDN := makeAmpCDNUrl(parsedUrl.Host)
-	wpFullUrl := preparePurgingUrl(ampCDN, "wp", parsedUrl)
-	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl)
+	now := time.Now()
+	timestamp := now.Unix()
+	wpFullUrl := preparePurgingUrl(ampCDN, "wp", parsedUrl, timestamp)
+	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
 
 	var err error
 	// clear both wp/s and c/s
@@ -55,10 +57,8 @@ func makePurgeRequest(url string) error {
 	return nil
 }
 
-func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL) string {
-	now := time.Now()
-	sec := now.Unix()
-	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), sec)
+func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL, timestamp int64) string {
+	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), timestamp)
 	signed := sign(path)
 	signedEncoded := encodeSignatureForUrl(signed)
 
