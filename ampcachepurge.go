@@ -26,11 +26,16 @@ func PurgeUrl(rawURL string) error {
 	ampCDN := makeAmpCDNUrl(parsedUrl.Host)
 	now := time.Now()
 	timestamp := now.Unix()
+
+	// https://amp.dev/documentation/guides-and-tutorials/learn/amp-caches-and-cors/amp-cache-urls/
+	// webpackages (SXG)
 	wpFullUrl := preparePurgingUrl(ampCDN, "wp", parsedUrl, timestamp)
+	// content
 	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
+	// viewer
+	vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
 
 	var err error
-	// clear both wp/s and c/s
 	err = makePurgeRequest(cFullUrl)
 	if err != nil {
 		return err
@@ -39,6 +44,11 @@ func PurgeUrl(rawURL string) error {
 	if err != nil {
 		return err
 	}
+	err = makePurgeRequest(vFullUrl)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
