@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -33,23 +34,34 @@ func PurgeUrl(rawURL string) error {
 	// content
 	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
 	// viewer
-	// check viewer cache exists
 	vCacheUrl := prepareCacheUrl(ampCDN, "v", parsedUrl)
-	cacheExists := checkCacheExists(vCacheUrl)
-	var err error
-	if cacheExists {
-		vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
-		err = makePurgeRequest(vFullUrl)
-		if err != nil {
-			return err
-		}
-	}
 
-	err = makePurgeRequest(cFullUrl)
-	if err != nil {
-		return err
-	}
-	err = makePurgeRequest(wpFullUrl)
+	var wg sync.WaitGroup
+	var err error
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cacheExists := checkCacheExists(vCacheUrl)
+		if cacheExists {
+			vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
+			err = makePurgeRequest(vFullUrl)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = makePurgeRequest(cFullUrl)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = makePurgeRequest(wpFullUrl)
+	}()
+
+	wg.Wait()
+
 	if err != nil {
 		return err
 	}
