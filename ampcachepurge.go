@@ -33,9 +33,18 @@ func PurgeUrl(rawURL string) error {
 	// content
 	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
 	// viewer
-	vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
-
+	// check viewer cache exists
+	vCacheUrl := prepareCacheUrl(ampCDN, "v", parsedUrl)
+	cacheExists := checkCacheExists(vCacheUrl)
 	var err error
+	if cacheExists {
+		vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
+		err = makePurgeRequest(vFullUrl)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = makePurgeRequest(cFullUrl)
 	if err != nil {
 		return err
@@ -44,12 +53,20 @@ func PurgeUrl(rawURL string) error {
 	if err != nil {
 		return err
 	}
-	err = makePurgeRequest(vFullUrl)
-	if err != nil {
-		return err
-	}
 
 	return nil
+}
+
+func checkCacheExists(url string) bool {
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println(err.Error())
+		return false
+	}
+	if resp.StatusCode != 200 {
+		return false
+	}
+	return true
 }
 
 func makePurgeRequest(url string) error {
@@ -73,6 +90,10 @@ func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL, timestamp int64
 	signedEncoded := encodeSignatureForUrl(signed)
 
 	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedEncoded)
+}
+
+func prepareCacheUrl(ampCDN, cachePrefix string, url *url.URL) string {
+	return fmt.Sprintf("%s/%s/s/%s%s", ampCDN, cachePrefix, url.Host, url.RequestURI())
 }
 
 func makeAmpCDNUrl(host string) string {
