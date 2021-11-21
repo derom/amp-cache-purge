@@ -23,8 +23,6 @@ func PurgeUrl(rawURL string) error {
 		return fmt.Errorf("failed to parse url: %s", rawURL)
 	}
 
-	// make requests to cache to check it exists
-
 	ampCDN := makeAmpCDNUrl(parsedUrl.Host)
 	now := time.Now()
 	timestamp := now.Unix()
@@ -48,10 +46,12 @@ func makePurgeRequest(url string) error {
 	fmt.Printf("Purging %s\n", url)
 	resp, err := http.Get(url)
 	if err != nil {
+		fmt.Println(err.Error())
 		return fmt.Errorf("failed to purge %s", url)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || string(body) != "OK" {
+		fmt.Println(err.Error())
 		return fmt.Errorf("failed to purge %s", url)
 	}
 	return nil
