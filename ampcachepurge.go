@@ -35,6 +35,8 @@ func PurgeUrl(rawURL string) error {
 	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
 	// viewer
 	vCacheUrl := prepareCacheUrl(ampCDN, "v", parsedUrl)
+	// without this param it returns 404 for any request
+	vCacheUrl = fmt.Sprintf("%s?amp_js_v=0.1", vCacheUrl)
 
 	var wg sync.WaitGroup
 	var err error
@@ -83,15 +85,19 @@ func checkCacheExists(url string) bool {
 
 func makePurgeRequest(url string) error {
 	fmt.Printf("Purging %s\n", url)
+	errorMessage := fmt.Errorf("failed to purge %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println(err.Error())
-		return fmt.Errorf("failed to purge %s", url)
+		return errorMessage
+	}
+	if resp.StatusCode != 200 {
+		return errorMessage
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || string(body) != "OK" {
 		fmt.Println(err.Error())
-		return fmt.Errorf("failed to purge %s", url)
+		return errorMessage
 	}
 	return nil
 }
