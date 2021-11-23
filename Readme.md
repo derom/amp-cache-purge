@@ -1,5 +1,11 @@
 Amp cache purging experiment - https://developers.google.com/amp/cache/update-cache
 
+## Supported Caches
+Based on https://amp.dev/documentation/guides-and-tutorials/learn/amp-caches-and-cors/amp-cache-urls/
+* /c - Content: This is an AMP document served as a standalone page which may be linked to directly in some interfaces.
+* /v - Viewer: This is also an AMP document, but is served in an AMP Viewer which is a frame environment that displays an AMP document in the context of a Search Result Page or other interface.
+* /wp - Web Package: This is an AMP document served as a Signed Exchange, a Web Package technology. These URLs act as redirects to the publisher’s own origin.
+
 ## Configuration
 `PRIVATE_KEY_LOCATION` - default="private-key.pem". The private key from this repo is for tests.
 
