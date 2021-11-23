@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -74,7 +75,7 @@ func PurgeUrl(rawURL string) error {
 func checkCacheExists(url string) bool {
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return false
 	}
 	if resp.StatusCode != 200 {
@@ -84,11 +85,11 @@ func checkCacheExists(url string) bool {
 }
 
 func makePurgeRequest(url string) error {
-	fmt.Printf("Purging %s\n", url)
+	log.Printf("Purging %s\n", url)
 	errorMessage := fmt.Errorf("failed to purge %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return errorMessage
 	}
 	if resp.StatusCode != 200 {
@@ -96,7 +97,7 @@ func makePurgeRequest(url string) error {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || string(body) != "OK" {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 		return errorMessage
 	}
 	return nil
@@ -152,8 +153,6 @@ func sign(msg string) []byte {
 }
 
 func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.PrivateKey, error) {
-	// validate locations
-
 	privateKeyFile, err := ioutil.ReadFile(privateKeyLocation)
 	if err != nil {
 		return nil, err
