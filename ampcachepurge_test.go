@@ -1,7 +1,9 @@
 package ampcachepurge
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"testing"
@@ -48,6 +50,18 @@ func TestCheckCacheExistsReturnsFalseWhen500(t *testing.T) {
 	res := checkCacheExists("/some-url", httpClient)
 	assert := assert.New(t)
 	assert.False(res)
+}
+
+func TestMakePurgeRequestSuccess(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	body := ioutil.NopCloser(bytes.NewReader([]byte("OK")))
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
+		StatusCode: 200,
+		Body:       body,
+	}, nil)
+
+	err := makePurgeRequest("/some-url", httpClient)
+	assert.Nil(t, err)
 }
 
 func TestPanicWhenPrivateKeyCantBeLoaded(t *testing.T) {
