@@ -105,10 +105,9 @@ func makePurgeRequest(url string) error {
 
 func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL, timestamp int64) string {
 	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), timestamp)
-	signed := sign(path)
-	signedEncoded := encodeSignatureForUrl(signed)
+	signedPath := signPath(path)
 
-	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedEncoded)
+	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedPath)
 }
 
 func prepareCacheUrl(ampCDN, cachePrefix string, url *url.URL) string {
@@ -148,6 +147,11 @@ func sign(msg string) []byte {
 		panic(err)
 	}
 	return signature
+}
+
+func signPath(path string) string {
+	signed := sign(path)
+	return encodeSignatureForUrl(signed)
 }
 
 func loadPrivateKey(privateKeyLocation, privateKeyPassword string) *rsa.PrivateKey {
