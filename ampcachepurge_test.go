@@ -21,7 +21,7 @@ func (m *MockHttpClient) Get(url string) (*http.Response, error) {
 
 }
 
-func TestCacheExistsReturnTrueWhen200(t *testing.T) {
+func TestCheckCacheExistsReturnsTrueWhen200(t *testing.T) {
 	httpClient := new(MockHttpClient)
 	httpClient.On("Get", "/some-url").Return(&http.Response{
 		StatusCode: 200,
@@ -29,6 +29,25 @@ func TestCacheExistsReturnTrueWhen200(t *testing.T) {
 	res := checkCacheExists("/some-url", httpClient)
 	assert := assert.New(t)
 	assert.True(res)
+}
+
+func TestCheckCacheExistsReturnsFalseWhen404(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	httpClient.On("Get", "/some-url").Return(&http.Response{
+		StatusCode: 404,
+	}, nil)
+	res := checkCacheExists("/some-url", httpClient)
+	assert := assert.New(t)
+	assert.False(res)
+}
+func TestCheckCacheExistsReturnsFalseWhen500(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	httpClient.On("Get", "/some-url").Return(&http.Response{
+		StatusCode: 500,
+	}, nil)
+	res := checkCacheExists("/some-url", httpClient)
+	assert := assert.New(t)
+	assert.False(res)
 }
 
 func TestPanicWhenPrivateKeyCantBeLoaded(t *testing.T) {
