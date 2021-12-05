@@ -2,9 +2,34 @@ package ampcachepurge
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+type MockHttpClient struct {
+	mock.Mock
+}
+
+func (m *MockHttpClient) Get(url string) (*http.Response, error) {
+
+	args := m.Called(url)
+	return args.Get(0).(*http.Response), args.Error(1)
+
+}
+
+func TestCacheExistsReturnTrueWhen200(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	httpClient.On("Get", "/some-url").Return(&http.Response{
+		StatusCode: 200,
+	}, nil)
+	res := checkCacheExists("/some-url", httpClient)
+	assert := assert.New(t)
+	assert.True(res)
+}
 
 func TestPanicWhenPrivateKeyCantBeLoaded(t *testing.T) {
 	location := ""
