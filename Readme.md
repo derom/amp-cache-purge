@@ -25,7 +25,8 @@ import (
 func purgeHandler(w http.ResponseWriter, req *http.Request) {
 	url := req.FormValue("url")
 
-	err := ampcachepurge.PurgeUrl(url)
+	httpClient := &http.Client{}
+	err := ampcachepurge.PurgeUrl(url, httpClient)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
