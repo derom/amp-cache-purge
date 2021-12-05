@@ -23,7 +23,7 @@ func (m *MockHttpClient) Get(url string) (*http.Response, error) {
 
 func TestCheckCacheExistsReturnsTrueWhen200(t *testing.T) {
 	httpClient := new(MockHttpClient)
-	httpClient.On("Get", "/some-url").Return(&http.Response{
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
 		StatusCode: 200,
 	}, nil)
 	res := checkCacheExists("/some-url", httpClient)
@@ -33,7 +33,7 @@ func TestCheckCacheExistsReturnsTrueWhen200(t *testing.T) {
 
 func TestCheckCacheExistsReturnsFalseWhen404(t *testing.T) {
 	httpClient := new(MockHttpClient)
-	httpClient.On("Get", "/some-url").Return(&http.Response{
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
 		StatusCode: 404,
 	}, nil)
 	res := checkCacheExists("/some-url", httpClient)
@@ -42,7 +42,7 @@ func TestCheckCacheExistsReturnsFalseWhen404(t *testing.T) {
 }
 func TestCheckCacheExistsReturnsFalseWhen500(t *testing.T) {
 	httpClient := new(MockHttpClient)
-	httpClient.On("Get", "/some-url").Return(&http.Response{
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
 		StatusCode: 500,
 	}, nil)
 	res := checkCacheExists("/some-url", httpClient)
