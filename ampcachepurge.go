@@ -19,7 +19,11 @@ import (
 	"time"
 )
 
-func PurgeUrl(rawURL string) error {
+type HTTPClient interface {
+	Get(url string) (*http.Response, error)
+}
+
+func PurgeUrl(rawURL string, httpClient HTTPClient) error {
 	parsedUrl, parseErr := url.Parse(rawURL)
 	if parseErr != nil {
 		return fmt.Errorf("failed to parse url: %s", rawURL)
@@ -44,23 +48,23 @@ func PurgeUrl(rawURL string) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cacheExists := checkCacheExists(vCacheUrl)
+		cacheExists := checkCacheExists(vCacheUrl, httpClient)
 		if cacheExists {
 			vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
-			err = makePurgeRequest(vFullUrl)
+			err = makePurgeRequest(vFullUrl, httpClient)
 		}
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = makePurgeRequest(cFullUrl)
+		err = makePurgeRequest(cFullUrl, httpClient)
 	}()
 
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err = makePurgeRequest(wpFullUrl)
+		err = makePurgeRequest(wpFullUrl, httpClient)
 	}()
 
 	wg.Wait()
@@ -72,8 +76,8 @@ func PurgeUrl(rawURL string) error {
 	return nil
 }
 
-func checkCacheExists(url string) bool {
-	resp, err := http.Get(url)
+func checkCacheExists(url string, httpClient HTTPClient) bool {
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		log.Println(err.Error())
 		return false
@@ -84,10 +88,10 @@ func checkCacheExists(url string) bool {
 	return true
 }
 
-func makePurgeRequest(url string) error {
+func makePurgeRequest(url string, httpClient HTTPClient) error {
 	log.Printf("Purging %s\n", url)
 	errorMessage := fmt.Errorf("failed to purge %s", url)
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		log.Println(err.Error())
 		return errorMessage
