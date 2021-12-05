@@ -64,6 +64,18 @@ func TestMakePurgeRequestSuccess(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestMakePurgeRequestError(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	body := ioutil.NopCloser(bytes.NewReader([]byte("OK")))
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
+		StatusCode: 403,
+		Body:       body,
+	}, nil)
+
+	err := makePurgeRequest("/some-url", httpClient)
+	assert.NotNil(t, err)
+}
+
 func TestPanicWhenPrivateKeyCantBeLoaded(t *testing.T) {
 	location := ""
 	password := ""
