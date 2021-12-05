@@ -21,3 +21,15 @@ func TestPreparePurgingUrl(t *testing.T) {
 		t.Fatalf("\nExpected result: %s\nActual   result: %s\n", expectedResult, result)
 	}
 }
+
+func TestPanicWhenPrivateKeyCantBeLoaded(t *testing.T) {
+	location := ""
+	password := ""
+	shouldPanic(t, func() { loadPrivateKey(location, password) })
+}
+
+func shouldPanic(t *testing.T, f func()) {
+	defer func() { recover() }()
+	f()
+	t.Errorf("should have panicked")
+}

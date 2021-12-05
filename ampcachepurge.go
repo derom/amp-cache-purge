@@ -141,10 +141,8 @@ func sign(msg string) []byte {
 	if len(privateKeyPassword) == 0 {
 		privateKeyPassword = ""
 	}
-	privateKey, err := loadPrivateKey(privateKeyLocation, privateKeyPassword)
-	if err != nil {
-		panic(err)
-	}
+	privateKey := loadPrivateKey(privateKeyLocation, privateKeyPassword)
+
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum[:])
 	if err != nil {
 		panic(err)
@@ -152,10 +150,10 @@ func sign(msg string) []byte {
 	return signature
 }
 
-func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.PrivateKey, error) {
+func loadPrivateKey(privateKeyLocation, privateKeyPassword string) *rsa.PrivateKey {
 	privateKeyFile, err := ioutil.ReadFile(privateKeyLocation)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	privatePem, _ := pem.Decode(privateKeyFile)
@@ -173,5 +171,5 @@ func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.Private
 	var privateKey *rsa.PrivateKey
 	privateKey, _ = parsedKey.(*rsa.PrivateKey)
 
-	return privateKey, nil
+	return privateKey
 }
