@@ -2,6 +2,7 @@ package ampcachepurge
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -64,7 +65,17 @@ func TestMakePurgeRequestSuccess(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMakePurgeRequestError(t *testing.T) {
+func TestMakePurgeRequestErrorWhenHttpClientReturnsError(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
+		StatusCode: 200,
+	}, errors.New("some error from http client"))
+
+	err := makePurgeRequest("/some-url", httpClient)
+	assert.NotNil(t, err)
+}
+
+func TestMakePurgeRequestErrorWhenStatusNot200(t *testing.T) {
 	httpClient := new(MockHttpClient)
 	body := ioutil.NopCloser(bytes.NewReader([]byte("OK")))
 	httpClient.On("Get", mock.Anything).Return(&http.Response{

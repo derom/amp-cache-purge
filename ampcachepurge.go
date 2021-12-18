@@ -101,6 +101,7 @@ func makePurgeRequest(url string, httpClient HTTPClient) error {
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil || string(body) != "OK" {
+		log.Println("Error while reading body or body is not \"OK\"")
 		return errorMessage
 	}
 	return nil
