@@ -124,3 +124,17 @@ func TestUrlSignature(t *testing.T) {
 	result := signPath(path)
 	assert.Equal(t, result, expected)
 }
+
+func TestParsingInvalidUrl(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	rawUrl := ":I'm not valid"
+	err := PurgeUrl(rawUrl, httpClient)
+	assert.NotNil(t, err)
+}
+
+func TestParsingEmptyUrl(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	rawUrl := ":I'm not valid"
+	err := PurgeUrl(rawUrl, httpClient)
+	assert.NotNil(t, err)
+}
