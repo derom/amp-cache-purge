@@ -138,3 +138,8 @@ func TestParsingEmptyUrl(t *testing.T) {
 	err := PurgeUrl(rawUrl, httpClient)
 	assert.NotNil(t, err)
 }
+
+func TestMakeAmpCDNUrl(t *testing.T) {
+	cdnUrl := makeAmpCDNUrl("www.example.com")
+	assert.Equal(t, "https://www-example-com.cdn.ampproject.org", cdnUrl)
+}
