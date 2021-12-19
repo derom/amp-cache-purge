@@ -143,3 +143,11 @@ func TestMakeAmpCDNUrl(t *testing.T) {
 	cdnUrl := makeAmpCDNUrl("www.example.com")
 	assert.Equal(t, "https://www-example-com.cdn.ampproject.org", cdnUrl)
 }
+
+func TestPrepareCacheUrl(t *testing.T) {
+	cdnUrl := "https://www-example-com.cdn.ampproject.org"
+	cachePrefix := "v"
+	url, _ := url.Parse("https://www.example.com/some-path")
+	cacheUrl := prepareCacheUrl(cdnUrl, cachePrefix, url)
+	assert.Equal(t, "https://www-example-com.cdn.ampproject.org/v/s/www.example.com/some-path", cacheUrl)
+}
