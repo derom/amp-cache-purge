@@ -32,25 +32,25 @@ func PurgeUrl(rawURL string, httpClient HTTPClient) error {
 	ampCDN := makeAmpCDNUrl(parsedUrl.Host)
 	now := time.Now()
 	timestamp := now.Unix()
+	var err error
 
 	// https://amp.dev/documentation/guides-and-tutorials/learn/amp-caches-and-cors/amp-cache-urls/
 	// webpackages (SXG)
-	wpFullUrl := preparePurgingUrl(ampCDN, "wp", parsedUrl, timestamp)
+	wpFullUrl, err := preparePurgingUrl(ampCDN, "wp", parsedUrl, timestamp)
 	// content
-	cFullUrl := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
+	cFullUrl, err := preparePurgingUrl(ampCDN, "c", parsedUrl, timestamp)
 	// viewer
 	vCacheUrl := prepareCacheUrl(ampCDN, "v", parsedUrl)
 	// without this param it returns 404 for any request
 	vCacheUrl = fmt.Sprintf("%s?amp_js_v=0.1", vCacheUrl)
 
 	var wg sync.WaitGroup
-	var err error
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		cacheExists := checkCacheExists(vCacheUrl, httpClient)
 		if cacheExists {
-			vFullUrl := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
+			vFullUrl, _ := preparePurgingUrl(ampCDN, "v", parsedUrl, timestamp)
 			err = makePurgeRequest(vFullUrl, httpClient)
 		}
 	}()
@@ -107,11 +107,15 @@ func makePurgeRequest(url string, httpClient HTTPClient) error {
 	return nil
 }
 
-func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL, timestamp int64) string {
+func preparePurgingUrl(ampCDN, cachePrefix string, url *url.URL, timestamp int64) (string, error) {
 	path := fmt.Sprintf("/update-cache/%s/s/%s%s?amp_action=flush&amp_ts=%d", cachePrefix, url.Host, url.RequestURI(), timestamp)
-	signedPath := signPath(path)
+	signedPath, err := signPath(path)
 
-	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedPath)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%s%s&amp_url_signature=%s", ampCDN, path, signedPath), nil
 }
 
 func prepareCacheUrl(ampCDN, cachePrefix string, url *url.URL) string {
@@ -132,7 +136,7 @@ func encodeSignatureForUrl(signature []byte) string {
 	return encoded
 }
 
-func sign(msg string) []byte {
+func sign(msg string) ([]byte, error) {
 	msgBytes := []byte(msg)
 
 	msgHashSum := sha256.Sum256(msgBytes)
@@ -144,24 +148,27 @@ func sign(msg string) []byte {
 	if len(privateKeyPassword) == 0 {
 		privateKeyPassword = ""
 	}
-	privateKey := loadPrivateKey(privateKeyLocation, privateKeyPassword)
+	privateKey, err := loadPrivateKey(privateKeyLocation, privateKeyPassword)
 
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHashSum[:])
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return signature
+	return signature, nil
 }
 
-func signPath(path string) string {
-	signed := sign(path)
-	return encodeSignatureForUrl(signed)
+func signPath(path string) (string, error) {
+	signed, err := sign(path)
+	if err != nil {
+		return "", err
+	}
+	return encodeSignatureForUrl(signed), nil
 }
 
-func loadPrivateKey(privateKeyLocation, privateKeyPassword string) *rsa.PrivateKey {
+func loadPrivateKey(privateKeyLocation, privateKeyPassword string) (*rsa.PrivateKey, error) {
 	privateKeyFile, err := ioutil.ReadFile(privateKeyLocation)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	privatePem, _ := pem.Decode(privateKeyFile)
@@ -179,5 +186,5 @@ func loadPrivateKey(privateKeyLocation, privateKeyPassword string) *rsa.PrivateK
 	var privateKey *rsa.PrivateKey
 	privateKey, _ = parsedKey.(*rsa.PrivateKey)
 
-	return privateKey
+	return privateKey, nil
 }
