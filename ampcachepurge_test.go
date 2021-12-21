@@ -53,6 +53,16 @@ func TestCheckCacheExistsReturnsFalseWhen500(t *testing.T) {
 	assert.False(res)
 }
 
+func TestCheckCacheExistsReturnsFalseWhenError(t *testing.T) {
+	httpClient := new(MockHttpClient)
+	httpClient.On("Get", mock.Anything).Return(&http.Response{
+		StatusCode: 200,
+	}, errors.New("some error while checking cache"))
+	res := checkCacheExists("/some-url", httpClient)
+	assert := assert.New(t)
+	assert.False(res)
+}
+
 func TestMakePurgeRequestSuccess(t *testing.T) {
 	httpClient := new(MockHttpClient)
 	body := ioutil.NopCloser(bytes.NewReader([]byte("OK")))
