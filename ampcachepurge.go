@@ -24,6 +24,9 @@ type HTTPClient interface {
 }
 
 func PurgeUrl(rawURL string, httpClient HTTPClient) error {
+	if rawURL == "" {
+		return fmt.Errorf("url is empty")
+	}
 	parsedUrl, parseErr := url.Parse(rawURL)
 	if parseErr != nil {
 		return fmt.Errorf("failed to parse url: %s", rawURL)

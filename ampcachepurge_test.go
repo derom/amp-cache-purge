@@ -145,7 +145,7 @@ func TestParsingInvalidUrl(t *testing.T) {
 
 func TestParsingEmptyUrl(t *testing.T) {
 	httpClient := new(MockHttpClient)
-	rawUrl := ":I'm not valid"
+	rawUrl := ""
 	err := PurgeUrl(rawUrl, httpClient)
 	assert.NotNil(t, err)
 }
